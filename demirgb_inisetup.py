@@ -20,15 +20,14 @@ def setup_network():
 
 def setup_diagnostic():
     # Flash the blue LED slowly on first boot after success.
-    led = machine.PWM(machine.Pin(2), freq=1)
-    led.duty(512)
+    led = machine.PWM(machine.Pin(2), freq=1, duty=512)
 
 
 def factory():
     setup(force=True)
 
 
-def setup(force=False):
+def setup(force=False, wait=False):
     if not force:
         try:
             os.stat('demirgb.json')
@@ -50,3 +49,7 @@ import demirgb_boot
     with open('demirgb.json', 'w') as f:
         f.write('{}')
     setup_diagnostic()
+    if wait:
+        import time
+        while True:
+            time.sleep(1)

@@ -6,4 +6,4 @@
 
 def setup():
     import demirgb_inisetup
-    demirgb_inisetup.setup()
+    demirgb_inisetup.setup(force=True, wait=True)
