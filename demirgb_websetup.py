@@ -110,6 +110,14 @@ def process_connection(cl, addr):
         cl.close()
         time.sleep(1)
         debug(urldata)
+        enable_ap = (True if ('enable_ap' in urldata and urldata['enable_ap']) else False)
+        if ap_if.active() != enable_ap:
+            debug('Setting AP to {}'.format(enable_ap))
+            ap_if.active(enable_ap)
+        enable_sta = (True if ('enable_sta' in urldata and urldata['enable_sta']) else False)
+        if sta_if.active() != enable_sta:
+            debug('Setting STA to {}'.format(enable_sta))
+            sta_if.active(enable_sta)
         if (
             'ap_essid' in urldata and urldata['ap_essid'] and
             'ap_password' in urldata and urldata['ap_password']
@@ -128,18 +136,6 @@ def process_connection(cl, addr):
         ):
             debug('Configuring STA: {} - {}'.format(urldata['sta_essid'], urldata['sta_password']))
             sta_if.connect(urldata['sta_essid'], urldata['sta_password'])
-        if 'enable_ap' in urldata and urldata['enable_ap']:
-            debug('Enabling AP')
-            ap_if.active(True)
-        else:
-            debug('Disabling AP')
-            ap_if.active(False)
-        if 'enable_sta' in urldata and urldata['enable_sta']:
-            debug('Enabling STA')
-            sta_if.active(True)
-        else:
-            debug('Disabling STA')
-            sta_if.active(False)
         if 'auth_secret' in urldata:
             try:
                 with open('demirgb.json') as f:
