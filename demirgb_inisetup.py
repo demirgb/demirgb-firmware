@@ -20,7 +20,7 @@ def setup_network():
 
 def setup_diagnostic():
     # Flash the blue LED slowly on first boot after success.
-    led = machine.PWM(machine.Pin(2), freq=1, duty=512)
+    machine.PWM(machine.Pin(2), freq=1, duty=512)
 
 
 def factory():
