@@ -2,6 +2,8 @@
 # Copyright (C) 2018 Velociraptor Aerospace Dynamics
 # This is free software; for details, please see COPYING.
 
+# This is loaded by boot.py on the filesystem.
+
 import machine
 import time
 import gc
