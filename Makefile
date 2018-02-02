@@ -1,8 +1,8 @@
-host := 10.9.8.133
+host := 10.9.8.132
 command_port := 80
 upload_port := 9999
 
-FROZEN = demirgb_boot.mpy demirgb_inisetup.mpy demirgb.mpy demirgb_uploader.mpy frozensetup.mpy demirgb_websetup.mpy
+FROZEN = demirgb_boot.mpy demirgb_inisetup.mpy demirgb.mpy demirgb_websetup.mpy
 
 all: $(FROZEN)
 
