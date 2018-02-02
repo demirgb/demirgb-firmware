@@ -14,11 +14,16 @@ import machine
 import gc
 import ubinascii
 import os
+import select
+import ustruct
 
 
 CONFIG = {
     'listen_addr': '0.0.0.0',
-    'listen_port': 80,
+    'enable_http_server': True,
+    'listen_port_http': 80,
+    'enable_jtlvi_server': True,
+    'listen_port_jtlvi': 26079,
     'auth_secret': '',
     'syslog_host': '',
     'syslog_id': 'demirgb',
@@ -370,6 +375,65 @@ def parse_config():
         CONFIG[k] = v
 
 
+def jtlvi_loads_dict(input):
+    input_len = len(input)
+    output = {}
+
+    assert(input[0:2] == b'\xd4\x0e')
+    assert(input_len >= 4)
+    input_checksum = ustruct.unpack('!H', input[2:4])[0]
+    input_zeroed = b'\xd4\x0e\x00\x00' + input[4:]
+    calculated_checksum = bsd_checksum(input_zeroed)
+    assert(calculated_checksum == input_checksum)
+
+    pos = 4
+    while input_len > pos:
+        assert(input_len >= (pos + 4))
+        t = ustruct.unpack('!H', input[pos:pos+2])[0]
+        if t == 65535:
+            break
+        l = ustruct.unpack('!H', input[pos+2:pos+4])[0]
+        assert(input_len >= (pos + 4 + l))
+        v = input[pos+4:pos+4+l]
+        output[t] = v
+        pos += 4 + l
+
+    return output
+
+
+def bsd_checksum(input):
+    checksum = 0
+    for ch in input:
+        checksum = (checksum >> 1) + ((checksum & 1) << 15)
+        checksum += ch
+        checksum &= 0xffff
+    return checksum
+
+
+def process_jtlvi_msg(data, addr):
+    tag_defs = {
+        1: (LED_R, 'Red'),
+        2: (LED_G, 'Green'),
+        3: (LED_B, 'Blue'),
+    }
+    tlvs = jtlvi_loads_dict(data)
+    debug('Packet received from {}: {}'.format(addr, tlvs))
+    if CONFIG['auth_secret']:
+        if 4 not in tlvs:
+            return
+        if tlvs[4].decode('ASCII') != CONFIG['auth_secret']:
+            return
+    for t in tlvs:
+        if t not in tag_defs:
+            continue
+        (led, desc) = tag_defs[t]
+        numeric_val = ustruct.unpack('!H', tlvs[t])[0]
+        if numeric_val > 1023:
+            continue
+        debug('Setting {} to {}'.format(desc, numeric_val))
+        led.duty(numeric_val)
+
+
 def main():
     global SYSLOG_SOCKET
 
@@ -380,22 +444,40 @@ def main():
 
     init_lights()
 
-    addr = socket.getaddrinfo(CONFIG['listen_addr'], CONFIG['listen_port'])[0][-1]
-    s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-    s.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
-    s.bind(addr)
-    s.listen(1)
-    debug('Listen: {}'.format(addr))
+    poll = select.poll()
 
-    while True:
-        debug('Memory free (before GC): {}'.format(gc.mem_free()))
-        gc.collect()
-        debug('Memory free (after GC):  {}'.format(gc.mem_free()))
-        try:
-            process_connection(*s.accept())
-        except KeyboardInterrupt:
-            s.close()
-            break
-        except Exception as e:
-            debug('Caught exception: {}'.format(e))
+    if CONFIG['enable_http_server']:
+        http_sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+        http_sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
+        http_addr = socket.getaddrinfo(CONFIG['listen_addr'], CONFIG['listen_port_http'])[0][-1]
+        http_sock.bind(http_addr)
+        http_sock.listen(1)
+        debug('Listen (HTTP): {}'.format(http_addr))
+        poll.register(http_sock, select.POLLIN)
+
+    if CONFIG['enable_jtlvi_server']:
+        jtlvi_sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+        jtlvi_addr = socket.getaddrinfo(CONFIG['listen_addr'], CONFIG['listen_port_jtlvi'])[0][-1]
+        jtlvi_sock.bind(jtlvi_addr)
+        debug('Listen (JTLVI): {}'.format(jtlvi_addr))
+        poll.register(jtlvi_sock, select.POLLIN)
+
+    try:
+        while True:
+            debug('Memory free (before GC): {}'.format(gc.mem_free()))
+            gc.collect()
+            debug('Memory free (after GC):  {}'.format(gc.mem_free()))
+            for i in poll.ipoll():
+                try:
+                    if CONFIG['enable_http_server'] and (i[0] == http_sock):
+                        process_connection(*http_sock.accept())
+                    elif CONFIG['enable_jtlvi_server'] and (i[0] == jtlvi_sock):
+                        process_jtlvi_msg(*jtlvi_sock.recvfrom(1024))
+                except Exception as e:
+                    debug('Caught exception: {}'.format(e))
         debug('')
+    except KeyboardInterrupt:
+        if CONFIG['enable_http_server']:
+            http_sock.close()
+        if CONFIG['enable_jtlvi_server']:
+            jtlvi_sock.close()
