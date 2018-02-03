@@ -45,14 +45,9 @@ STATE = {
     'brnorm': True,
 }
 
-# Unused pins which do not have default pullups/pulldowns.
-# We want to pull these up.
-for pin in CONFIG['disable_pins']:
-    machine.Pin(pin, machine.Pin.IN, machine.Pin.PULL_UP)
-
-LED_R = machine.PWM(machine.Pin(CONFIG['led_r_pin']), freq=STATE['frequency'], duty=0)
-LED_G = machine.PWM(machine.Pin(CONFIG['led_g_pin']), freq=STATE['frequency'], duty=0)
-LED_B = machine.PWM(machine.Pin(CONFIG['led_b_pin']), freq=STATE['frequency'], duty=0)
+LED_R = None
+LED_G = None
+LED_B = None
 SYSLOG_SOCKET = None
 
 
@@ -449,9 +444,21 @@ def process_jtlvi_msg(data, addr):
 
 
 def main():
+    global LED_R
+    global LED_G
+    global LED_B
     global SYSLOG_SOCKET
 
     parse_config()
+
+    # Unused pins which do not have default pullups/pulldowns.
+    # We want to pull these up.
+    for pin in CONFIG['disable_pins']:
+        machine.Pin(pin, machine.Pin.IN, machine.Pin.PULL_UP)
+
+    LED_R = machine.PWM(machine.Pin(CONFIG['led_r_pin']), freq=STATE['frequency'], duty=0)
+    LED_G = machine.PWM(machine.Pin(CONFIG['led_g_pin']), freq=STATE['frequency'], duty=0)
+    LED_B = machine.PWM(machine.Pin(CONFIG['led_b_pin']), freq=STATE['frequency'], duty=0)
 
     if CONFIG['syslog_host']:
         SYSLOG_SOCKET = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
