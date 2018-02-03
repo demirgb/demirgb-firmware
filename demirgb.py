@@ -219,6 +219,8 @@ def parse_data(reqdata):
 
 
 def parse_user_state(j):
+    global STATE
+
     soft_ignore = ('red', 'green', 'blue')
     tomerge = {}
     for k in j:
@@ -252,6 +254,8 @@ def parse_user_state(j):
 
 
 def adjust_state():
+    global STATE
+
     # Convert back to red/green/blue
     # (We don't use these keys directly, but provide them in responses)
     r, g, b = hsv_to_rgb(STATE['hue'] / 100.0, STATE['saturation'] / 100.0, STATE['level'] / 100.0)
@@ -266,6 +270,17 @@ def adjust_state():
         int(g * 255.0),
         int(b * 255.0),
     )
+
+
+def save_state():
+    try:
+        with open('demirgb.json') as f:
+            conf = json.load(f)
+    except:
+        conf = {}
+    conf['state'] = STATE
+    with open('demirgb.json', 'w') as f:
+        f.write(json.dumps(conf))
 
 
 def http_error(cl, code, desc):
@@ -329,10 +344,10 @@ def process_connection(cl, addr):
     except:
         http_error(cl, 500, 'Internal Server Error')
         return
+
     if 'state' in j:
         parse_user_state(j['state'])
-
-    adjust_state()
+        adjust_state()
 
     uname = os.uname()
     response = json.dumps({
@@ -356,10 +371,13 @@ def process_connection(cl, addr):
         if j['cmd'] == 'reset':
             time.sleep(1)
             machine.reset()
-            return
-        if j['cmd'] == 'demo':
+            time.sleep(60)
+        elif j['cmd'] == 'demo':
             demo_lights()
-    set_lights()
+        elif j['cmd'] == 'savestate':
+            save_state()
+    if 'state' in j:
+        set_lights()
 
 
 def parse_config():
@@ -372,7 +390,11 @@ def parse_config():
         return
 
     for k, v in conf.items():
-        CONFIG[k] = v
+        if k == 'state':
+            for sk, sv in v.items():
+                STATE[sk] = sv
+        else:
+            CONFIG[k] = v
 
 
 def jtlvi_loads_dict(input):
