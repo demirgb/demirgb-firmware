@@ -84,7 +84,7 @@ def process_connection(cl, addr):
     ap_if = network.WLAN(network.AP_IF)
 
     if httpuri == b'/':
-        response = b'<a href="/config">Configure</a>'
+        response = b'<!DOCTYPE html><html><head><meta name="viewport" content="width=device-width"></head><body><a href="/config">Configure</a></body></html>'
         cl.write(b'HTTP/1.1 200 OK\r\n')
         cl.write(b'Content-Type: text/html\r\n')
         cl.write(b'Content-Length: ' + str(len(response)).encode('ASCII') + b'\r\n')
@@ -101,7 +101,7 @@ def process_connection(cl, addr):
         except:
             http_error(cl, 500, 'Internal Server Error')
             return
-        response = b'Applying and resetting'
+        response = b'<!DOCTYPE html><html><head><meta name="viewport" content="width=device-width"></head><body>Applying and resetting...</body></html>'
         cl.write(b'HTTP/1.1 200 OK\r\n')
         cl.write(b'Content-Type: text/html\r\n')
         cl.write(b'Content-Length: ' + str(len(response)).encode('ASCII') + b'\r\n')
@@ -149,13 +149,19 @@ def process_connection(cl, addr):
         machine.reset()
         return
     elif httpuri == b'/config':
+        try:
+            with open('demirgb.json') as f:
+                conf = json.load(f)
+        except ImportError:
+            conf = {}
+        auth_secret = ''
+        if ('auth_secret' in conf) and conf['auth_secret']:
+            auth_secret = conf['auth_secret']
         ap_mac_h = ubinascii.hexlify(ap_if.config('mac')).decode('ASCII')
         sta_mac_h = ubinascii.hexlify(sta_if.config('mac')).decode('ASCII')
         response = b"""\
-<!DOCTYPE html>
-<html><body>
+<!DOCTYPE html><html><head><meta name="viewport" content="width=device-width"></head><body>
 <form method="post" action="/config_apply">
-Set device password: <input type="password" name="auth_secret"><br><br>
 Enable Wifi client: <input type="checkbox" name="enable_sta"{enable_sta}><ul>
 <li>MAC address: {sta_mac}
 <li>ESSID: <input name="sta_essid">
@@ -164,6 +170,7 @@ Enable access point: <input type="checkbox" name="enable_ap"{enable_ap}><ul>
 <li>MAC address: {ap_mac}
 <li>ESSID: <input name="ap_essid" value="{ap_essid}">
 <li>Password: <input type="password" name="ap_password"></ul>
+Set device password: <input type="password" name="auth_secret" value="{auth_secret}"><br><br>
 <input type="submit">
 </form>
 </body></html>
@@ -179,6 +186,7 @@ Enable access point: <input type="checkbox" name="enable_ap"{enable_ap}><ul>
             enable_sta=(' checked' if sta_if.active() else ''),
             enable_ap=(' checked' if ap_if.active() else ''),
             ap_essid=ap_if.config('essid'),
+            auth_secret=auth_secret,
         )
         cl.write(b'HTTP/1.1 200 OK\r\n')
         cl.write(b'Content-Type: text/html\r\n')
