@@ -117,7 +117,7 @@ def init_lights():
     if STATE['fadetime']:
         fadesteps = int(STATE['fadetime'] / 50.0)
         # 1020, not 1023.  If we step up to full 1023, there's a noticable
-        # flash (PWM turning off for efficiency maybe?)
+        # flash when PWM turns off internally.
         fadeduties = [int(math.sin((i+1) / fadesteps * math.pi) * 1020 * CONFIG['brightness_scale']) for i in range(fadesteps)]
         fadedelay = 50
     else:
@@ -141,7 +141,7 @@ def init_lights():
 
 def demo_lights():
     # 1020, not 1023.  If we step up to full 1023, there's a noticable
-    # flash (PWM turning off for efficiency maybe?)
+    # flash when PWM turns off internally.
     fade_lights(int(1020 * CONFIG['brightness_scale']), 0, 0)
     for l in range(3):
         for i in range(40):
