@@ -154,23 +154,15 @@ def demo_lights():
 
 
 def fade_lights(ledto_r, ledto_g, ledto_b):
+    freq = STATE['frequency']
+    if LED_R.freq() != freq:
+        # Setting one channel's freq will set all at the same time.
+        debug('PWM frequency change: {}'.format(freq))
+        LED_R.freq(freq)
+
     ledfrom_r = LED_R.duty()
     ledfrom_g = LED_G.duty()
     ledfrom_b = LED_B.duty()
-    freq = STATE['frequency']
-    if LED_R.freq() != freq:
-        # Deinit all first, as all PWMs must be running at the
-        # same frequency at the same time
-        for i in (LED_R, LED_G, LED_B):
-            debug('{}.deinit()'.format(i))
-            i.deinit()
-        debug('LED_R.init(freq={}, duty={})'.format(freq, ledfrom_r))
-        LED_R.init(freq=freq, duty=ledfrom_r)
-        debug('LED_G.init(freq={}, duty={})'.format(freq, ledfrom_g))
-        LED_G.init(freq=freq, duty=ledfrom_g)
-        debug('LED_B.init(freq={}, duty={})'.format(freq, ledfrom_b))
-        LED_B.init(freq=freq, duty=ledfrom_b)
-
     if (ledfrom_r != ledto_r) or (ledfrom_g != ledto_g) or (ledfrom_b != ledto_b):
         debug('PWM: Setting to R={}, G={}, B={}'.format(ledto_r, ledto_g, ledto_b))
         if STATE['fadetime']:
