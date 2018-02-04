@@ -8,7 +8,6 @@
 
 import socket
 import time
-import machine
 import gc
 import ubinascii
 import network
@@ -101,7 +100,7 @@ def process_connection(cl, addr):
         except:
             http_error(cl, 500, 'Internal Server Error')
             return
-        response = b'<!DOCTYPE html><html><head><meta name="viewport" content="width=device-width"></head><body>Applying and resetting...</body></html>'
+        response = b'<!DOCTYPE html><html><head><meta name="viewport" content="width=device-width"></head><body>Applying and resetting (10s), <a href="/config">go back</a></body></html>'
         cl.write(b'HTTP/1.1 200 OK\r\n')
         cl.write(b'Content-Type: text/html\r\n')
         cl.write(b'Content-Length: ' + str(len(response)).encode('ASCII') + b'\r\n')
@@ -145,9 +144,6 @@ def process_connection(cl, addr):
             conf['auth_secret'] = urldata['auth_secret']
             with open('demirgb.json', 'w') as f:
                 f.write(json.dumps(conf))
-        time.sleep(5)
-        machine.reset()
-        return
     elif httpuri == b'/config':
         try:
             with open('demirgb.json') as f:
@@ -164,6 +160,7 @@ def process_connection(cl, addr):
 <form method="post" action="/config_apply">
 Enable Wifi client: <input type="checkbox" name="enable_sta"{enable_sta}><ul>
 <li>MAC address: {sta_mac}
+<li>Connected: {sta_connected}
 <li>ESSID: <input name="sta_essid">
 <li>Password: <input type="password" name="sta_password"></ul>
 Enable access point: <input type="checkbox" name="enable_ap"{enable_ap}><ul>
@@ -185,6 +182,7 @@ Set device password: <input type="password" name="auth_secret" value="{auth_secr
             ),
             enable_sta=(' checked' if sta_if.active() else ''),
             enable_ap=(' checked' if ap_if.active() else ''),
+            sta_connected=('Yes, {}'.format(sta_if.ifconfig()[0]) if sta_if.isconnected() else 'No'),
             ap_essid=ap_if.config('essid'),
             auth_secret=auth_secret,
         )
@@ -194,10 +192,8 @@ Set device password: <input type="password" name="auth_secret" value="{auth_secr
         cl.write(b'\r\n')
         cl.write(response)
         cl.close()
-        return
     else:
         http_error(cl, 404, 'Not Found')
-        return
 
 
 def main():
