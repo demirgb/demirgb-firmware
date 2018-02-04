@@ -40,6 +40,7 @@ STATE = {
     'hue': 11.7647,
     'saturation': 6.71937,
     'level': 100,
+    'gamma': 1.0,
     'frequency': 240,
     'fadetime': 1000,
     'brnorm': True,
@@ -187,13 +188,18 @@ def set_lights():
         ledto_r = r * 1023.0 * CONFIG['brightness_scale']
         ledto_g = g * 1023.0 * CONFIG['brightness_scale']
         ledto_b = b * 1023.0 * CONFIG['brightness_scale']
+        # Apply gamma correction
+        if STATE['gamma'] != 1.0:
+            ledto_r = math.pow(ledto_r / 1023, STATE['gamma']) * 1023 + 0.5
+            ledto_g = math.pow(ledto_g / 1023, STATE['gamma']) * 1023 + 0.5
+            ledto_b = math.pow(ledto_b / 1023, STATE['gamma']) * 1023 + 0.5
         # Ensure that brightness is equalized no matter what combination
         # of R/G/B are set.
         if STATE['brnorm']:
-            total = r + g + b
-            ledto_r = ledto_r * (r / total)
-            ledto_g = ledto_g * (g / total)
-            ledto_b = ledto_b * (b / total)
+            total = ledto_r + ledto_g + ledto_b
+            ledto_r = ledto_r * (ledto_r / total)
+            ledto_g = ledto_g * (ledto_g / total)
+            ledto_b = ledto_b * (ledto_b / total)
     else:
         ledto_r = 0
         ledto_g = 0
