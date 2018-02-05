@@ -32,7 +32,6 @@ CONFIG = {
     'led_b_pin': 14,
     'disable_pins': [5, 4],
     'init_light_test': True,
-    'brightness_scale': 1.0,
 }
 
 STATE = {
@@ -115,10 +114,10 @@ def init_lights():
         fadesteps = int(STATE['fadetime'] / 50.0)
         # 1020, not 1023.  If we step up to full 1023, there's a noticable
         # flash when PWM turns off internally.
-        fadeduties = [int(math.sin((i+1) / fadesteps * math.pi) * 1020 * CONFIG['brightness_scale']) for i in range(fadesteps)]
+        fadeduties = [int(math.sin((i+1) / fadesteps * math.pi) * 1020) for i in range(fadesteps)]
         fadedelay = 50
     else:
-        fadeduties = [int(1023 * CONFIG['brightness_scale'])]
+        fadeduties = [1023]
         fadedelay = 1000
     for i in (
         (LED_R, LED_G, LED_B),
@@ -139,13 +138,13 @@ def init_lights():
 def demo_lights():
     # 1020, not 1023.  If we step up to full 1023, there's a noticable
     # flash when PWM turns off internally.
-    fade_lights(int(1020 * CONFIG['brightness_scale']), 0, 0)
+    fade_lights(1020, 0, 0)
     for l in range(3):
         for i in range(40):
             r, g, b = hsv_to_rgb(i / 40.0, 1.0, 1.0)
-            LED_R.duty(int(r * 1020 * CONFIG['brightness_scale']))
-            LED_G.duty(int(g * 1020 * CONFIG['brightness_scale']))
-            LED_B.duty(int(b * 1020 * CONFIG['brightness_scale']))
+            LED_R.duty(int(r * 1020))
+            LED_G.duty(int(g * 1020))
+            LED_B.duty(int(b * 1020))
             time.sleep_ms(50)
     set_lights()
 
@@ -186,9 +185,9 @@ def fade_lights(ledto_r, ledto_g, ledto_b):
 def set_lights():
     if STATE['switch'] == 'on':
         r, g, b = hsv_to_rgb(STATE['hue'] / 100.0, STATE['saturation'] / 100.0, STATE['level'] / 100.0)
-        ledto_r = r * 1023.0 * CONFIG['brightness_scale']
-        ledto_g = g * 1023.0 * CONFIG['brightness_scale']
-        ledto_b = b * 1023.0 * CONFIG['brightness_scale']
+        ledto_r = r * 1023.0
+        ledto_g = g * 1023.0
+        ledto_b = b * 1023.0
         # Apply gamma correction
         if STATE['gamma'] != 1.0:
             ledto_r = math.pow(ledto_r / 1023, STATE['gamma']) * 1023 + 0.5
