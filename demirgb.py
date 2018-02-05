@@ -50,6 +50,7 @@ LED_R = None
 LED_G = None
 LED_B = None
 SYSLOG_SOCKET = None
+JTLVI_TRIPPED = False
 
 
 def debug(text):
@@ -246,6 +247,26 @@ def parse_user_state(j):
         STATE[k] = tomerge[k]
 
 
+def jtlvi_reset():
+    global JTLVI_TRIPPED
+    global STATE
+
+    # If JTLVI messages have been received since last,
+    # re-calculate the internal state.
+    r = LED_R.duty()
+    g = LED_G.duty()
+    b = LED_B.duty()
+    STATE['switch'] = ('on' if (r or g or b) else 'off')
+    h, s, v = rgb_to_hsv(r / 1023.0, g / 1023.0, b / 1023.0)
+    STATE['hue'] = h * 100.0
+    STATE['saturation'] = s * 100.0
+    STATE['level'] = int(v * 100.0)
+    STATE['red'] = int(r / 1023.0 * 255.0)
+    STATE['green'] = int(g / 1023.0 * 255.0)
+    STATE['blue'] = int(b / 1023.0 * 255.0)
+    JTLVI_TRIPPED = False
+
+
 def adjust_state():
     global STATE
 
@@ -338,6 +359,9 @@ def process_connection(cl, addr):
         http_error(cl, 500, 'Internal Server Error')
         return
 
+    if JTLVI_TRIPPED:
+        jtlvi_reset()
+
     if 'state' in j:
         parse_user_state(j['state'])
         adjust_state()
@@ -426,6 +450,8 @@ def bsd_checksum(input):
 
 
 def process_jtlvi_msg(data, addr):
+    global JTLVI_TRIPPED
+
     tag_defs = {
         1: (LED_R, 'Red'),
         2: (LED_G, 'Green'),
@@ -447,6 +473,7 @@ def process_jtlvi_msg(data, addr):
             continue
         debug('Setting {} to {}'.format(desc, numeric_val))
         led.duty(numeric_val)
+    JTLVI_TRIPPED = True
 
 
 def main():
