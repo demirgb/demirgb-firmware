@@ -38,7 +38,7 @@ STATE = {
     'switch': 'off',
     'hue': 11.7647,
     'saturation': 6.71937,
-    'level': 100,
+    'level': 100.0,
     'gamma': 1.0,
     'frequency': 240,
     'fadetime': 1000,
@@ -236,7 +236,7 @@ def parse_user_state(j):
         h, s, v = rgb_to_hsv(tomerge['red'] / 255.0, tomerge['green'] / 255.0, tomerge['blue'] / 255.0)
         tomerge['hue'] = h * 100.0
         tomerge['saturation'] = s * 100.0
-        tomerge['level'] = int(v * 100.0)
+        tomerge['level'] = v * 100.0
 
     for i in soft_ignore:
         if i in tomerge:
@@ -259,7 +259,7 @@ def jtlvi_reset():
     h, s, v = rgb_to_hsv(r / 1023.0, g / 1023.0, b / 1023.0)
     STATE['hue'] = h * 100.0
     STATE['saturation'] = s * 100.0
-    STATE['level'] = int(v * 100.0)
+    STATE['level'] = v * 100.0
     STATE['red'] = int(r / 1023.0 * 255.0)
     STATE['green'] = int(g / 1023.0 * 255.0)
     STATE['blue'] = int(b / 1023.0 * 255.0)
