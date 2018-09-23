@@ -55,10 +55,13 @@ JTLVI_TRIPPED = False
 def debug(text):
     print(text)
     if SYSLOG_SOCKET and text:
-        SYSLOG_SOCKET.sendto(
-            '<135>{} demirgb: {}'.format(CONFIG['syslog_id'], text).encode('ASCII'),
-            (CONFIG['syslog_host'], 514),
-        )
+        try:
+            SYSLOG_SOCKET.sendto(
+                '<135>{} demirgb: {}'.format(CONFIG['syslog_id'], text).encode('ASCII'),
+                (CONFIG['syslog_host'], 514),
+            )
+        except OSError:
+            pass
 
 
 def hsv_to_rgb(h, s, v):
