@@ -1,13 +1,14 @@
-host := 10.9.8.132
+host := demirgb-test.snowman.lan
 command_port := 80
 upload_port := 9999
 
 FROZEN = demirgb_boot.mpy demirgb_inisetup.mpy demirgb.mpy demirgb_websetup.mpy
+MPYCROSS = mpy-cross
 
 all: $(FROZEN)
 
 %.mpy: %.py
-	mpy-cross -v $<
+	$(MPYCROSS) -v $<
 
 clean:
 	$(RM) *.mpy
